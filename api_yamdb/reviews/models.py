@@ -9,9 +9,9 @@ MAX_STR_TEXT_LIMIT = 15
 class Category(models.Model):
     """Модель катерогий"""
     name = models.CharField(
+        'Категория'
         max_length=MAX_TITLE_LENGTH,
         unique=True,
-        verbose_name='Категория'
     )
     slug = models.SlugField(
         unique=True,
