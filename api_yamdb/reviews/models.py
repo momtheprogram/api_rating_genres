@@ -9,7 +9,7 @@ MAX_STR_TEXT_LIMIT = 15
 class Category(models.Model):
     """Модель катерогий"""
     name = models.CharField(
-        'Категория'
+        'Категория',
         max_length=MAX_TITLE_LENGTH,
         unique=True,
     )
