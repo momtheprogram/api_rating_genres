@@ -4,6 +4,22 @@ from rest_framework import serializers
 from django.db.models import Avg
 
 from reviews.models import Category, Genre, Title
+from users.models import User, Roles
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для юзера
+    """
+    role = serializers.CharField(default=Roles.USER)
+
+    class Meta:
+        fields = ('first_name', 'last_name', 'username',
+                  'bio', 'email', 'role', 'confirmation_code')
+        model = User
+        extra_kwargs = {'confirmation_code': {'write_only': True},
+                        'username': {'required': True},
+                        'email': {'required': True}}
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -52,7 +68,6 @@ class PostTitleSerializer(serializers.ModelSerializer):
         slug_field='slug',
         queryset=Category.objects.all(),
     )
-
 
     class Meta:
         model = Title
