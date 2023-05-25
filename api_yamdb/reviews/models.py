@@ -6,9 +6,11 @@ MAX_STR_TEXT_LIMIT = 15
 
 
 class Category(models.Model):
+    """Модель катерогий"""
     name = models.CharField(
         max_length=MAX_TITLE_LENGTH,
-        verbose_name='Название категории'
+        unique=True,
+        verbose_name='Категория'
     )
     slug = models.SlugField(
         unique=True,
@@ -25,9 +27,11 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
+    """Модель жанров"""
     name = models.CharField(
+        'Жанр',
         max_length=MAX_TITLE_LENGTH,
-        verbose_name='Жанр'
+        unique=True,
     )
     slug = models.SlugField(
         unique=True,
@@ -44,18 +48,23 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
+    """Модель произведений"""
     name = models.CharField(
+        'Название',
         max_length=MAX_TITLE_LENGTH,
-        verbose_name='Название'
     )
     year = models.IntegerField('Год выпуска',)
     description = models.TextField('Описание',)
-    genre = models.ManyToManyField(Genre, through='TitleGenre')
+    genre = models.ManyToManyField(
+        Genre,
+        through='TitleGenre',
+        related_name='titles',
+    )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='title',
+        related_name='titles',
         verbose_name='Категория',
     )
 
@@ -68,11 +77,14 @@ class Title(models.Model):
 
 
 class TitleGenre(models.Model):
+    """Модель для связи многие ко многим"""
     title = models.ForeignKey(
-        Title, on_delete=models.CASCADE, related_name='title_genre'
+        Title,
+        on_delete=models.CASCADE
     )
     genre = models.ForeignKey(
-        Genre, on_delete=models.CASCADE, related_name='title_genre'
+        Genre,
+        on_delete=models.CASCADE
     )
 
     class Meta:
@@ -83,4 +95,7 @@ class TitleGenre(models.Model):
         )
 
     def __str__(self):
-        return f'{self.title.name[:MAX_STR_TEXT_LIMIT]} {self.genre.name[:MAX_STR_TEXT_LIMIT]}'
+        return (
+            f'{self.title.name[:MAX_STR_TEXT_LIMIT]}'
+            f'{self.genre.name[:MAX_STR_TEXT_LIMIT]}'
+        )

@@ -9,6 +9,7 @@ class BaseViewSet(
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
+    """Базовый вьюсет с ограниченными правами"""
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter)
     search_fields = ('name',)

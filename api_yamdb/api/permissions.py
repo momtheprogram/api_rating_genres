@@ -2,6 +2,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
 class IsAdminOrReadOnly(BasePermission):
+    """Права дооступа. Редоктирование доступно только персоналу"""
     message = 'Доступ разрешен только админу'
 
     def has_permission(self, request, view):
