@@ -131,7 +131,7 @@ class Review(models.Model):
 
     class Meta:
         ordering = ['-pub_date'],
-        constrains = [
+        constraints = [
             models.UniqueConstraint(
                 fields=['author', 'title'],
                 name='unique_review'
