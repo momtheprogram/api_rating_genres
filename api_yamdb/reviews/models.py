@@ -1,6 +1,7 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from users.models import User
 
 MAX_TITLE_LENGTH = 200
 MAX_STR_TEXT_LIMIT = 15
