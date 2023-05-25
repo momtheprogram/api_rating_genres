@@ -1,5 +1,5 @@
 from django.db.models import Max
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -9,10 +9,20 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from rest_framework.decorators import action
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 from users.models import User
-from .permissions import IsAdmin, IsSuperuser
-from .serializers import UserSerializer
+from .permissions import IsAdmin, IsSuperuser, IsAdminOrReadOnly
 from .utils import generate_confirmation_code, send_mail_to_user
+from .serializers import (
+    CategorySerializer,
+    GenreSerializer,
+    GetTitleSerializer,
+    PostTitleSerializer,
+    UserSerializer,
+)
+from reviews.models import Category, Genre, Title
+from .utils import BaseViewSet
 
 
 class RegisterView(APIView):
@@ -78,3 +88,29 @@ class UsersViewSet(ModelViewSet):
         else:
             serializer = self.get_serializer(request.user, many=False)
             return Response(serializer.data)
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    """Вьюсет для произведений."""
+    queryset = Title.objects.all()
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('name', 'year', 'genre', 'category',)
+
+    def get_serializer_class(self):
+        """Используем сериализатор в зависимости от типа запроса"""
+        if self.action in ('POST', 'PUT', 'PATCH'):
+            return PostTitleSerializer
+        return GetTitleSerializer
+
+
+class GenreViewSet(BaseViewSet):
+    """Вьюсет для жанров"""
+    queryset = Genre.objects.all()
+    serializer_class = CategorySerializer
+
+
+class CategoryViewSet(BaseViewSet):
+    """Вьюсет для категорий"""
+    queryset = Category.objects.all()
+    serializer_class = GenreSerializer
