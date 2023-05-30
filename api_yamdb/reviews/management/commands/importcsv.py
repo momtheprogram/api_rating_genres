@@ -4,7 +4,8 @@ import sys
 
 from django.core.management.base import BaseCommand
 
-from reviews.models import Category, Comment, Genre, Review, Title, TitleGenre, User
+from reviews.models import Category, Comment, Genre, Review, Title, TitleGenre
+from users.models import User
 
 
 CSV_PATH = 'static/data/'
@@ -20,17 +21,18 @@ TABLES = {
     Comment: 'comments.csv',
 }
 
-logging.basicConfig( 
-    level=logging.INFO, 
-    handlers=[ 
-        logging.StreamHandler(sys.stdout) 
-    ], 
-    format=( 
-        '%(asctime)s - ' 
-        '%(levelname)s - ' 
-        '%(message)s' 
-    ) 
-) 
+
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ],
+    format=(
+        '%(asctime)s - '
+        '%(levelname)s - '
+        '%(message)s'
+    )
+)
 
 
 def csv_import(csv_data, model):
@@ -50,9 +52,9 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         for model in TABLES:
             with open(
-                CSV_PATH + TABLES[model],
-                newline='',
-                encoding='utf8'
+                    CSV_PATH + TABLES[model],
+                    newline='',
+                    encoding='utf8'
             ) as csv_file:
                 csv_import(csv.DictReader(csv_file), model)
                 logging.info(f'Импорт данных для модели {model.__name__} завершен.')
