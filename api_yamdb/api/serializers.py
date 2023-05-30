@@ -1,42 +1,17 @@
 import datetime as dt
 
-from rest_framework.serializers import (
-    CharField, EmailField, ModelSerializer, Serializer, SerializerMethodField,
-    SlugRelatedField, ValidationError, StringRelatedField,
-)
-from rest_framework.validators import UniqueValidator
-
 from django.db.models import Avg
+from rest_framework.serializers import (
+    CharField, ModelSerializer, Serializer, SerializerMethodField,
+    SlugRelatedField, ValidationError, EmailField, RegexField
+)
 
 from reviews.models import Category, Genre, Title, Comment, Review
-from users.models import User, Roles
+from users.models import User
 
-
-# class UserSerializer(ModelSerializer):
-#     """
-#     Сериализатор для юзера
-#     """
-#     role = CharField(default=Roles.USER, max_length=150,)
-#
-#     class Meta:
-#         model = User
-#         fields = ('first_name', 'last_name', 'username',
-#                   'bio', 'email', 'role', 'confirmation_code')
-#         extra_kwargs = {'confirmation_code': {'write_only': True},
-#                         'username': {'required': True},
-#                         'email': {'required': True}}
 
 class UserSerializer(ModelSerializer):
     """ Сериализатор для юзера."""
-    username = CharField(validators=[UniqueValidator(
-        queryset=User.objects.all())],
-        required=True,
-    )
-    email = EmailField(validators=[UniqueValidator(
-        queryset=User.objects.all())],
-        required=True,
-    )
-    role = StringRelatedField(read_only=True)
 
     class Meta:
         model = User
@@ -45,58 +20,37 @@ class UserSerializer(ModelSerializer):
                   'first_name',
                   'last_name',
                   'role',
-                  'bio'
-                  )
+                  'bio')
 
     def validate_username(self, username):
-        if username == 'me':
+        if username.lower() == 'me':
             raise ValidationError('You can not use "me"!')
         return username
 
 
-class CreateUserSerializer(ModelSerializer):
-    """Сериалайзер для создания юзера."""
-
-    class Meta:
-        model = User
-        fields = ('username',
-                  'email',
-                  'first_name',
-                  'last_name',
-                  'role',
-                  'bio'
-                  )
-        read_only_fields = ('role',)
-
-
-class SignUpSerializer(ModelSerializer):
+class SignUpSerializer(Serializer):
     """Сериалайзер для регистрации."""
-    # username = CharField(
-    #     validators=[UniqueValidator(queryset=User.objects.all())]
-    # )
-    # email = EmailField(
-    #     validators=[UniqueValidator(queryset=User.objects.all())]
-    # )
-
-    def validate_exist(self, attrs):
-        username = attrs.get('username')
-        if_user = User.objects.filter(username=username)
-        if if_user.exists():
-            raise ValidationError('Пользователь с таким именем уже существует')
-        email = attrs.get('email')
-        if_email = User.objects.filter(email=email)
-        if if_email.exists():
-            raise ValidationError('Почта уже использовалась')
-
-    def validate_username(self, username):
-        if username == 'me':
-            raise ValidationError('Нельзя использовать me')
-        return username
+    username = RegexField(max_length=150, regex=r'^[\w.@+-]+')
+    email = EmailField(max_length=254)
 
     class Meta:
-        model = User
+        # model = User
         fields = ("username", "email")
 
+    def validate(self, attrs):
+        username = attrs.get('username')
+        # todo подумать над валидацией в сериалзаторе
+        # email = attrs.get('email')
+        # if_user = User.objects.filter(username=username).exclude(email=email)
+        # if if_user.exists():
+        #     raise ValidationError('Пользователь с таким именем уже существует')
+        #
+        # if_email = User.objects.filter(email=email).exclude(username=username)
+        # if if_email.exists():
+        #     raise ValidationError('Почта уже использовалась')
+        if username.lower() == 'me':
+            raise ValidationError('Нельзя использовать me')
+        return attrs
 
 class TokenSerializer(Serializer):
     """Сериалайзер JWT токена."""
@@ -109,9 +63,7 @@ class TokenSerializer(Serializer):
 
 
 class ReviewSerializer(ModelSerializer):
-    """
-    Сериализатор отзывов
-    """
+    """Сериализатор отзывов."""
     author = SlugRelatedField(
         many=False,
         read_only=True,
@@ -134,33 +86,32 @@ class ReviewSerializer(ModelSerializer):
 
 
 class CommentSerializer(ModelSerializer):
-    """
-    Сериализатор комментариев
-    """
+    """Сериализатор комментариев."""
     author = SlugRelatedField(
-        many=False,
         read_only=True,
         slug_field='username'
     )
 
     class Meta:
-        read_only_fields = ('id', 'review', 'pub_date')
         fields = ('id', 'text', 'author', 'pub_date')
+        read_only_fields = ('id', 'review', )
         model = Comment
 
 
 class GenreSerializer(ModelSerializer):
     """Сериализатор жанров"""
+
     class Meta:
         model = Genre
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class CategorySerializer(ModelSerializer):
     """Сериализатор категорий."""
+
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class GetTitleSerializer(ModelSerializer):
@@ -184,7 +135,6 @@ class GetTitleSerializer(ModelSerializer):
 
 class PostTitleSerializer(ModelSerializer):
     """Сериализатор создания произведений"""
-    description = CharField(required=False)
     genre = SlugRelatedField(
         slug_field='slug',
         queryset=Genre.objects.all(),
@@ -198,7 +148,7 @@ class PostTitleSerializer(ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('__all__')
+        fields = '__all__'
 
     def validate_year(self, value):
         """Проверяем что произведение не из будущего"""

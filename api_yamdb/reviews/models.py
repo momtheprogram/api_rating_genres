@@ -55,8 +55,11 @@ class Title(models.Model):
         'Название',
         max_length=MAX_TITLE_LENGTH,
     )
-    year = models.IntegerField('Год выпуска',)
-    description = models.TextField('Описание',)
+    year = models.IntegerField('Год выпуска', )
+    description = models.TextField(
+        'Описание',
+        blank=True,
+    )
     genre = models.ManyToManyField(
         Genre,
         through='TitleGenre',
@@ -66,6 +69,7 @@ class Title(models.Model):
         Category,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         related_name='titles',
         verbose_name='Категория',
     )
@@ -101,7 +105,7 @@ class TitleGenre(models.Model):
             f'{self.title.name[:MAX_STR_TEXT_LIMIT]}'
             f'{self.genre.name[:MAX_STR_TEXT_LIMIT]}'
         )
-    
+
 
 class Review(models.Model):
     """Отзывы к произведеням."""
@@ -133,7 +137,7 @@ class Review(models.Model):
     )
 
     class Meta:
-        ordering = ['-pub_date'],
+        ordering = ('-pub_date',)
         constraints = [
             models.UniqueConstraint(
                 fields=['author', 'title'],

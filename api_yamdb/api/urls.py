@@ -1,8 +1,8 @@
-from rest_framework.routers import DefaultRouter
 from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
 from .views import (
-    CategoryViewSet, GenreViewSet, TitleViewSet, RegisterView,
+    CategoryViewSet, GenreViewSet, TitleViewSet, SignUp,
     TokenView, UsersViewSet, CommentViewSet, ReviewViewSet
 )
 
@@ -15,23 +15,19 @@ router_v1.register(r'titles', TitleViewSet)
 router_v1.register(r'genres', GenreViewSet)
 router_v1.register(r'categories', CategoryViewSet)
 router_v1.register(
-    r'titles/(?P<title_id>[0-9]+)/reviews',
+    r'titles/(?P<title_id>\d+)/reviews',
     ReviewViewSet,
-    basename='Review'
+    basename='review'
 )
 router_v1.register(
-    r'titles/(?P<title_id>[0-9]+)/reviews/(?P<review_id>[0-9]+)/comments',
+    r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
     CommentViewSet,
-    basename='Comment'
+    basename='comment'
 )
-# jwtpatterns = [
-#     path('token/', get_jwt_token, name='token_obtain_pair'),
-#     path('signup/', sign_up, name='signup'),
-# ]
 
 urlpatterns = [
     path('', include(router_v1.urls)),
-    path('auth/signup/', RegisterView.as_view(),
-         name='get_confirmation_code'),
+    path('auth/signup/', SignUp.as_view(),
+         name='signup'),
     path('auth/token/', TokenView.as_view(), name='get_token'),
 ]
