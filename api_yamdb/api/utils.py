@@ -17,6 +17,7 @@ def send_mail_to_user(email, confirmation_code):
         fail_silently=False,
     )
 
+
 def generate_confirmation_code():
     return ''.join(random.choices(string.digits + string.ascii_uppercase,
                                   k=10))

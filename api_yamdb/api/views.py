@@ -1,7 +1,8 @@
 from django.db.models import Max
 from rest_framework import status, viewsets
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (
+    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly,)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
@@ -10,17 +11,24 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 
 from users.models import User
-from .permissions import IsAdmin, IsSuperuser, IsAdminOrReadOnly
-from .utils import generate_confirmation_code, send_mail_to_user
+from .permissions import (
+    IsAdmin, IsSuperuser, IsAdminOrReadOnly, IsAuthor, IsModerator,
+)
+from .utils import (
+    generate_confirmation_code,
+    send_mail_to_user,
+    BaseViewSet,
+)
 from .serializers import (
     CategorySerializer,
     GenreSerializer,
     GetTitleSerializer,
     PostTitleSerializer,
     UserSerializer,
+    ReviewSerializer,
+    CommentSerializer,
 )
-from reviews.models import Category, Genre, Title
-from .utils import BaseViewSet
+from reviews.models import Category, Genre, Title, Comment, Review
 
 
 class RegisterView(APIView):
@@ -74,8 +82,11 @@ class UsersViewSet(ModelViewSet):
     lookup_field = 'username'
     permission_classes = (IsAuthenticated, IsSuperuser | IsAdmin,)
 
-    @action(detail=False, permission_classes=(IsAuthenticated,),
-            methods=['get', 'patch'], url_path='me')
+    @action(
+        detail=False, permission_classes=(IsAuthenticated,),
+        serializer_class=(UserSerializer,), methods=['get', 'patch'],
+        url_path='me'
+    )
     def get_or_update_self(self, request):
         if request.method != 'GET':
             serializer = self.get_serializer(
@@ -96,7 +107,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     filterset_fields = ('name', 'year', 'genre', 'category',)
 
     def get_serializer_class(self):
-        """Используем сериализатор в зависимости от типа запроса"""
+        """Выбор сериализатора по типу запроса"""
         if self.action in ('POST', 'PUT', 'PATCH'):
             return PostTitleSerializer
         return GetTitleSerializer
@@ -112,3 +123,40 @@ class CategoryViewSet(BaseViewSet):
     """Вьюсет для категорий"""
     queryset = Category.objects.all()
     serializer_class = GenreSerializer
+
+
+class CommentViewSet(ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthor | IsModerator |
+                          IsAdminOrReadOnly | IsSuperuser]
+
+    def get_queryset(self):
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(
+            Review.objects.filter(title_id=title_id), pk=review_id
+        )
+        return review.comments.all()
+
+    def perform_create(self, serializer):
+        title_id = self.kwargs.get('title_id')
+        review_id = self.kwargs.get('review_id')
+        review = get_object_or_404(
+            Review.objects.filter(title_id=title_id), pk=review_id
+        )
+        serializer.save(author=self.request.user, review=review)
+
+
+class ReviewViewSet(ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthor | IsModerator |
+                          IsAdminOrReadOnly | IsSuperuser]
+    # pagination_class = PageNumberPagination
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        return title.reviews.all().order_by('id')
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        serializer.save(author=self.request.user, title=title)

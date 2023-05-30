@@ -1,9 +1,10 @@
 import datetime as dt
 
 from rest_framework import serializers
+
 from django.db.models import Avg
 
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User, Roles
 
 
@@ -11,15 +12,56 @@ class UserSerializer(serializers.ModelSerializer):
     """
     Сериализатор для юзера
     """
-    role = serializers.CharField(default=Roles.USER)
+    role = serializers.CharField(default=Roles.USER, max_length=150,)
 
     class Meta:
+        model = User
         fields = ('first_name', 'last_name', 'username',
                   'bio', 'email', 'role', 'confirmation_code')
-        model = User
         extra_kwargs = {'confirmation_code': {'write_only': True},
                         'username': {'required': True},
                         'email': {'required': True}}
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор отзывов
+    """
+    author = serializers.SlugRelatedField(
+        many=False,
+        read_only=True,
+        slug_field='username'
+    )
+
+    class Meta:
+        read_only_fields = ('id', 'title', 'pub_date')
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        model = Review
+
+    def validate(self, attrs):
+        is_exist = Review.objects.filter(
+            author=self.context['request'].user,
+            title=self.context['view'].kwargs.get('title_id')).exists()
+        if is_exist and self.context['request'].method == 'POST':
+            raise serializers.ValidationError(
+                'Пользователь уже оставлял отзыв на это произведение')
+        return attrs
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор комментариев
+    """
+    author = serializers.SlugRelatedField(
+        many=False,
+        read_only=True,
+        slug_field='username'
+    )
+
+    class Meta:
+        read_only_fields = ('id', 'review', 'pub_date')
+        fields = ('id', 'text', 'author', 'pub_date')
+        model = Comment
 
 
 class GenreSerializer(serializers.ModelSerializer):
