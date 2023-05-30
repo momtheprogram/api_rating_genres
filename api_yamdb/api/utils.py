@@ -1,5 +1,4 @@
 from rest_framework import filters, mixins, viewsets
-from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
 
 from .permissions import IsAdminOrReadOnly
 

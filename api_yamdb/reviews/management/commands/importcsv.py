@@ -57,7 +57,8 @@ class Command(BaseCommand):
                     encoding='utf8'
             ) as csv_file:
                 csv_import(csv.DictReader(csv_file), model)
-                logging.info(f'Импорт данных для модели {model.__name__} завершен.')
+                logging.info(f'Импорт данных для модели {model.__name__}'
+                             f'завершен.')
         self.stdout.write(
             self.style.SUCCESS(
                 'Загрузка завершена'

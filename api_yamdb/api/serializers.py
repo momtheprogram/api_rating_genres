@@ -34,23 +34,14 @@ class SignUpSerializer(Serializer):
     email = EmailField(max_length=254)
 
     class Meta:
-        # model = User
         fields = ("username", "email")
 
     def validate(self, attrs):
         username = attrs.get('username')
-        # todo подумать над валидацией в сериалзаторе
-        # email = attrs.get('email')
-        # if_user = User.objects.filter(username=username).exclude(email=email)
-        # if if_user.exists():
-        #     raise ValidationError('Пользователь с таким именем уже существует')
-        #
-        # if_email = User.objects.filter(email=email).exclude(username=username)
-        # if if_email.exists():
-        #     raise ValidationError('Почта уже использовалась')
         if username.lower() == 'me':
             raise ValidationError('Нельзя использовать me')
         return attrs
+
 
 class TokenSerializer(Serializer):
     """Сериалайзер JWT токена."""

@@ -4,11 +4,11 @@ from django.core.mail import send_mail
 from django.db import IntegrityError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
-from rest_framework import status, viewsets
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import (
-    AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly, )
+    AllowAny, IsAuthenticated)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
@@ -18,7 +18,7 @@ from reviews.models import Category, Genre, Title, Review
 from users.models import User
 from .filters import TitleFilter
 from .permissions import (
-    IsAdmin, IsAdminOrReadOnly, IsAuthor, IsModerator, IsAuthorAdminModeratorOrReadOnly,
+    IsAdmin, IsAdminOrReadOnly, IsAuthorAdminModeratorOrReadOnly,
 )
 from .serializers import (
     CategorySerializer,
@@ -47,11 +47,14 @@ class SignUp(APIView):
         # user = serializer.save()
         try:
             user, _ = User.objects.get_or_create(
-                email=serializer.data['email'], username=serializer.data['username']
+                email=serializer.data['email'],
+                username=serializer.data['username']
             )
         except IntegrityError:
-            return Response({'username': 'Пользователь с похожим username или email уже существует'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'username':
+                    'Пользователь с похожим username или email уже существует'
+            }, status=status.HTTP_400_BAD_REQUEST)
         confirmation_code = default_token_generator.make_token(user)
         user.confirmation_code = confirmation_code
         user.save()
@@ -99,14 +102,16 @@ class UsersViewSet(ModelViewSet):
     http_method_names = ('get', 'post', 'delete', 'patch')
 
     @action(
-        detail=False, permission_classes=(IsAuthenticated,), methods=['get', 'patch']
+        detail=False, permission_classes=(IsAuthenticated,),
+        methods=['get', 'patch'],
     )
     def me(self, request):
         if request.method == 'GET':
             serializer = self.get_serializer(request.user)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        serializer = self.get_serializer(request.user, data=request.data, partial=True)
+        serializer = self.get_serializer(
+            request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save(role=request.user.role, partial=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
