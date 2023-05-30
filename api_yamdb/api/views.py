@@ -1,4 +1,4 @@
-from django.db.models import Max
+# from django.db.models import Max
 from rest_framework import status, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import (
@@ -8,15 +8,18 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
+
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth.tokens import default_token_generator
+from django.conf import settings
+from django.core.mail import send_mail
 
 from users.models import User
 from .permissions import (
     IsAdmin, IsSuperuser, IsAdminOrReadOnly, IsAuthor, IsModerator,
 )
 from .utils import (
-    generate_confirmation_code,
-    send_mail_to_user,
+    send_confirmation_code,
     BaseViewSet,
 )
 from .serializers import (
@@ -25,33 +28,36 @@ from .serializers import (
     GetTitleSerializer,
     PostTitleSerializer,
     UserSerializer,
+    SignUpSerializer,
     ReviewSerializer,
     CommentSerializer,
+    TokenSerializer,
+    AdminUserSerializer,
 )
 from reviews.models import Category, Genre, Title, Comment, Review
 
 
-class RegisterView(APIView):
-    """
-    Получает email, возвращает код доступа
-    """
+
+class ConfCodeView(APIView):
+    """Получает email и username, отправляет
+    письмо с confirmation_code на email."""
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        email = request.data.get('email')
-        user = User.objects.filter(email=email)
-        if len(user) > 0:
-            confirmation_code = user[0].confirmation_code
-        else:
-            confirmation_code = generate_confirmation_code()
-            max_id = User.objects.aggregate(Max('id'))['id__max'] + 1
-            data = {'email': email, 'confirmation_code': confirmation_code,
-                    'username': f'User {max_id}'}
-            serializer = UserSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-        send_mail_to_user(email, confirmation_code)
-        return Response({'email': email})
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        email = serializer.validated_data.get('email')
+        confirmation_code = default_token_generator.make_token(user)
+        send_mail(
+            subject='Код подтверждения регистрации',
+            message='Вы зарегистрировались в "YAMDB"!'
+                    f'Ваш код подтвержения: {confirmation_code}',
+            from_email=settings.ADMIN_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 class TokenView(APIView):
@@ -60,24 +66,68 @@ class TokenView(APIView):
     """
     permission_classes = (AllowAny,)
 
-    def get_tokens_for_user(user):
-        refresh = RefreshToken.for_user(user)
-        return str(refresh.access_token)
+    # def get_tokens_for_user(user):
+    #     refresh = RefreshToken.for_user(user)
+    #     return str(refresh.access_token)
+    #
+    # def post(self, request):
+    #     user = get_object_or_404(User, email=request.data.get('email'))
+    #     if user.confirmation_code != request.data.get('confirmation_code'):
+    #         response = {'confirmation_code': 'Неверный код'}
+    #         return Response(response, status=status.HTTP_400_BAD_REQUEST)
+    #     response = {'token': self.get_token(user)}
+    #     return Response(response, status=status.HTTP_200_OK)
+    def post(self, request):
+        serializer = TokenSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        username = serializer.data['username']
+        user = get_object_or_404(User, username=username)
+        confirmation_code = serializer.data['confirmation_code']
+        if not default_token_generator.check_token(user, confirmation_code):
+            return Response({'Неверный код'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        token = RefreshToken.for_user(user)
+        return Response({'token': token.access_token},
+                        status=status.HTTP_200_OK)
+
+
+class RegisterView(APIView):
+    """
+    Получает email, возвращает код доступа
+    """
+    permission_classes = (AllowAny,)
+
+    # def post(self, request):
+    #     email = request.data.get('email')
+    #     user = User.objects.filter(email=email)
+    #     if len(user) > 0:
+    #         confirmation_code = user[0].confirmation_code
+    #     else:
+    #         confirmation_code = generate_confirmation_code()
+    #         max_id = User.objects.aggregate(Max('id'))['id__max'] + 1
+    #         data = {'email': email, 'confirmation_code': confirmation_code,
+    #                 'username': f'User {max_id}'}
+    #         serializer = UserSerializer(data=data)
+    #         serializer.is_valid(raise_exception=True)
+    #         serializer.save()
+    #     send_mail_to_user(email, confirmation_code)
+    #     return Response({'email': email})
 
     def post(self, request):
-        user = get_object_or_404(User, email=request.data.get('email'))
-        if user.confirmation_code != request.data.get('confirmation_code'):
-            response = {'confirmation_code': 'Неверный код'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        response = {'token': self.get_token(user)}
-        return Response(response, status=status.HTTP_200_OK)
+        serializer = SignUpSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            send_confirmation_code(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UsersViewSet(ModelViewSet):
     """
     Вьюсет для работы с пользователями
     """
-    serializer_class = UserSerializer
+    serializer_class = AdminUserSerializer
     queryset = User.objects.all()
     lookup_field = 'username'
     permission_classes = (IsAuthenticated, IsSuperuser | IsAdmin,)
