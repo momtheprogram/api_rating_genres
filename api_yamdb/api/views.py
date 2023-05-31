@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import IntegrityError
+
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework import status
@@ -14,6 +15,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import AccessToken
 
+from api_yamdb.settings import EMAIL_HOST_USER
 from reviews.models import Category, Genre, Title, Review
 from users.models import User
 from .filters import TitleFilter
@@ -60,9 +62,9 @@ class SignUp(APIView):
         user.save()
         send_mail(
             subject='Код подтверждения регистрации',
-            message='Вы зарегистрировались в "YAMDB"!'
+            message='Вы зарегистрировались в "YAMDB"! '
                     f'Ваш код подтвержения: {confirmation_code}',
-            from_email=settings.ADMIN_EMAIL,
+            from_email=EMAIL_HOST_USER,
             recipient_list=[user.email],
             fail_silently=False,
         )
