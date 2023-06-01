@@ -108,8 +108,8 @@ POST /api/v1/categories/
 
 ``` js
 {
-  "name": "string",
-  "slug": "string"
+  "name": "Books",
+  "slug": "1"
 }
 ```
 
@@ -127,8 +127,8 @@ POST /api/v1/genres/
 
 ``` json
 {
-  "name": "string",
-  "slug": "string"
+  "name": "Fantasy",
+  "slug": "26"
 }
 ```
 
