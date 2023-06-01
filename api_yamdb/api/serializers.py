@@ -1,12 +1,16 @@
-import datetime as dt
-
 from django.db.models import Avg
 from rest_framework.serializers import (
-    CharField, ModelSerializer, Serializer, SerializerMethodField,
-    SlugRelatedField, ValidationError, EmailField, RegexField
+    CharField,
+    EmailField,
+    ModelSerializer,
+    RegexField,
+    Serializer,
+    SerializerMethodField,
+    SlugRelatedField,
+    ValidationError,
 )
 
-from reviews.models import Category, Genre, Title, Comment, Review
+from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
 
 
@@ -15,12 +19,14 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username',
-                  'email',
-                  'first_name',
-                  'last_name',
-                  'role',
-                  'bio')
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'role',
+            'bio'
+        )
 
     def validate_username(self, username):
         if username.lower() == 'me':
@@ -62,9 +68,9 @@ class ReviewSerializer(ModelSerializer):
     )
 
     class Meta:
+        model = Review
         read_only_fields = ('id', 'title', 'pub_date')
         fields = ('id', 'text', 'author', 'score', 'pub_date')
-        model = Review
 
     def validate(self, attrs):
         is_exist = Review.objects.filter(
@@ -72,7 +78,8 @@ class ReviewSerializer(ModelSerializer):
             title=self.context['view'].kwargs.get('title_id')).exists()
         if is_exist and self.context['request'].method == 'POST':
             raise ValidationError(
-                'Пользователь уже оставлял отзыв на это произведение')
+                'Пользователь уже оставлял отзыв на это произведение'
+            )
         return attrs
 
 
@@ -84,9 +91,9 @@ class CommentSerializer(ModelSerializer):
     )
 
     class Meta:
+        model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
         read_only_fields = ('id', 'review', )
-        model = Comment
 
 
 class GenreSerializer(ModelSerializer):
@@ -140,11 +147,3 @@ class PostTitleSerializer(ModelSerializer):
     class Meta:
         model = Title
         fields = '__all__'
-
-    def validate_year(self, value):
-        """Проверяем что произведение не из будущего"""
-        if value > dt.date.today().year:
-            raise ValidationError(
-                'Год выпуска не может быть больше текущего.'
-            )
-        return value

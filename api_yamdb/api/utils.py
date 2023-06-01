@@ -3,7 +3,11 @@ from rest_framework import filters, mixins, viewsets
 from .permissions import IsAdminOrReadOnly
 
 
-class BaseViewSet(
+MAX_TITLE_LENGTH = 200
+MAX_STR_TEXT_LIMIT = 15
+
+
+class CatGenreViewSet(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.DestroyModelMixin,
