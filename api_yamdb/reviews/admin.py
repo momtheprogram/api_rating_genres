@@ -5,6 +5,8 @@ from reviews.models import (
     Genre,
     Title,
     TitleGenre,
+    Comment, 
+    Review, 
 )
 
 
@@ -30,7 +32,16 @@ class TitleGenreAdmin(admin.ModelAdmin):
     list_display = ("pk", "title", "genre")
 
 
+class ReviewsAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'text', 'score', 'author', 'title')
+    search_fields = ('title', 'author')
+    list_filter = ('score', 'text',)
+    empty_value_display = '-пусто-'
+
+
 admin.site.register(Genre, GenreAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Title, TitleAdmin)
 admin.site.register(TitleGenre, TitleGenreAdmin)
+admin.site.register(Review, ReviewsAdmin)
+admin.site.register(Comment)
