@@ -1,10 +1,9 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from api.utils import MAX_TITLE_LENGTH, MAX_STR_TEXT_LIMIT
 from users.models import User
-
-MAX_TITLE_LENGTH = 200
-MAX_STR_TEXT_LIMIT = 15
+from .validators import validate_year
 
 
 class Category(models.Model):
@@ -55,7 +54,10 @@ class Title(models.Model):
         'Название',
         max_length=MAX_TITLE_LENGTH,
     )
-    year = models.IntegerField('Год выпуска', )
+    year = models.IntegerField(
+        'Год выпуска',
+        validators=[validate_year]
+    )
     description = models.TextField(
         'Описание',
         blank=True,

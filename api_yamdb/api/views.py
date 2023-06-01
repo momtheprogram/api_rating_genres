@@ -1,62 +1,61 @@
-from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import IntegrityError
-
+from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
-from rest_framework import status
+from rest_framework import filters, status
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import (
-    AllowAny, IsAuthenticated)
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api_yamdb.settings import EMAIL_HOST_USER
-from reviews.models import Category, Genre, Title, Review
-from users.models import User
 from .filters import TitleFilter
 from .permissions import (
-    IsAdmin, IsAdminOrReadOnly, IsAuthorAdminModeratorOrReadOnly,
+    IsAdmin,
+    IsAdminOrReadOnly,
+    IsAuthorAdminModeratorOrReadOnly,
 )
 from .serializers import (
     CategorySerializer,
+    CommentSerializer,
     GenreSerializer,
     GetTitleSerializer,
     PostTitleSerializer,
-    UserSerializer,
-    SignUpSerializer,
     ReviewSerializer,
-    CommentSerializer,
+    SignUpSerializer,
     TokenSerializer,
+    UserSerializer,
 )
-from .utils import (
-    BaseViewSet,
-)
+from .utils import CatGenreViewSet
+from reviews.models import Category, Genre, Review, Title
+from users.models import User
 
 
 class SignUp(APIView):
-    """Получает email и username, отправляет
-    письмо с confirmation_code на email."""
+    """
+    Получает email и username, отправляет
+    письмо с confirmation_code на email.
+    """
     permission_classes = (AllowAny,)
 
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # user = serializer.save()
         try:
             user, _ = User.objects.get_or_create(
                 email=serializer.data['email'],
                 username=serializer.data['username']
             )
         except IntegrityError:
-            return Response({
-                'username':
-                    'Пользователь с похожим username или email уже существует'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'username': 'Пользователь с похожим username или email '
+                 'уже существует'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         confirmation_code = default_token_generator.make_token(user)
         user.confirmation_code = confirmation_code
         user.save()
@@ -84,11 +83,12 @@ class TokenView(APIView):
         user = get_object_or_404(User, username=username)
         confirmation_code = serializer.data['confirmation_code']
         if not default_token_generator.check_token(user, confirmation_code):
-            return Response({'confirmation_code': 'Неверный код'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'confirmation_code': 'Неверный код'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         token = AccessToken.for_user(user)
-        return Response({'token': str(token)},
-                        status=status.HTTP_200_OK)
+        return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
 class UsersViewSet(ModelViewSet):
@@ -113,7 +113,8 @@ class UsersViewSet(ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         serializer = self.get_serializer(
-            request.user, data=request.data, partial=True)
+            request.user, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save(role=request.user.role, partial=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -121,27 +122,25 @@ class UsersViewSet(ModelViewSet):
 
 class TitleViewSet(ModelViewSet):
     """Вьюсет для произведений."""
-    queryset = Title.objects.all()
+    queryset = Title.objects.all().annotate(rating=Avg('reviews__score'))
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
 
     def get_serializer_class(self):
         """Выбор сериализатора по типу запроса"""
-        # if self.request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
-
         if self.action in ('list', 'retrieve'):
             return GetTitleSerializer
         return PostTitleSerializer
 
 
-class GenreViewSet(BaseViewSet):
+class GenreViewSet(CatGenreViewSet):
     """Вьюсет для жанров"""
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
 
-class CategoryViewSet(BaseViewSet):
+class CategoryViewSet(CatGenreViewSet):
     """Вьюсет для категорий"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer

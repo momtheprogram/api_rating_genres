@@ -16,7 +16,8 @@ class User(AbstractUser):
         verbose_name='роль',
         max_length=150,
         choices=Roles.choices,
-        default=Roles.USER)
+        default=Roles.USER
+    )
     username = models.CharField(
         max_length=150,
         unique=True,
@@ -27,18 +28,27 @@ class User(AbstractUser):
             ),
         ]
     )
-    bio = models.TextField(verbose_name='биография', blank=True, null=True)
-    email = models.EmailField(max_length=254, unique=True, )
+    bio = models.TextField(
+        verbose_name='биография',
+        blank=True,
+        null=True
+    )
+    email = models.EmailField(
+        max_length=254,
+        unique=True,
+    )
     confirmation_code = models.CharField(
         verbose_name='Код подтверждения',
         max_length=100,
         null=True,
     )
     first_name = models.CharField(
-        verbose_name='Имя', max_length=150, blank=True,
+        verbose_name='Имя',
+        max_length=150, blank=True,
     )
     last_name = models.CharField(
-        verbose_name='Фамилия', max_length=150, blank=True,
+        verbose_name='Фамилия',
+        max_length=150, blank=True,
     )
 
     class Meta:
