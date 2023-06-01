@@ -39,12 +39,20 @@ git clone https://github.com/momtheprogram/api_yamdb.git
 
 cd api_yamdb
 ```
--   Cоздать и активировать виртуальное окружение:
+-   Cоздать и активировать виртуальное окружение.
 
+-   Windows:
 ```bash
 python -m venv venv
 
 . venv/Scripts/activate
+```
+
+Linux/macOS:
+```bash
+python3 -m venv venv
+
+source venv/bin/activate
 ```
 
 -   Установить зависимости из файла requirements.txt:
@@ -59,6 +67,12 @@ pip install -r requirements.txt
 
 ```bash
 python manage.py migrate
+```
+
+- При желании можете заргузить тестовые данные из CSV:
+
+```bash
+python manage.py importcsv
 ```
 
 -   Запустить проект:
